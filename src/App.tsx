@@ -54,15 +54,15 @@ function generateUUID() {
 }
 
 function App() {
-    const [modalIsOpen, setIsOpen] = useState(false);
+    const [modalIsOpen, setModalIsOpen] = useState(false);
     const [bookmarks, setBookmarks] = useState<BookmarkListType[]>([]);
 
     const openModal = () => {
-        setIsOpen(true);
+        setModalIsOpen(true);
     };
 
     const closeModal = () => {
-        setIsOpen(false);
+        setModalIsOpen(false);
     };
 
     const addBookmarkList = (title: string, bookmarks: BookmarkType[]) => {
@@ -128,7 +128,89 @@ function App() {
                 style={modalCustomStyles}
                 contentLabel="Example Modal"
             >
-               
+                <div className="row">
+                    <div className="col">
+                        <h2>Add Bookmark</h2>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className="col">
+                        <button
+                            type="button"
+                            className="btn btn-primary w-100"
+                            onClick={() => addBookmarkList("Test", [])}
+                        >
+                            Add Bookmark List
+                        </button>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className="col">
+                        <button
+                            type="button"
+                            className="btn btn-primary w-100"
+                            onClick={() =>
+                                addBookmarkToList(
+                                    bookmarks[0].id,
+                                    "Test",
+                                    "https://google.com"
+                                )
+                            }
+                        >
+                            Add Bookmark to List
+                        </button>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className="col">
+                        <button
+                            type="button"
+                            className="btn btn-primary w-100"
+                            onClick={() =>
+                                removeBookmarkFromList(
+                                    bookmarks[0].id,
+                                    bookmarks[0].bookmarks[0].id
+                                )
+                            }
+                        >
+                            Remove Bookmark from List
+                        </button>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className="col">
+                        <button
+                            type="button"
+                            className="btn btn-primary w-100"
+                            onClick={() => removeBookmarkList(bookmarks[0].id)}
+                        >
+                            Remove Bookmark List
+                        </button>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className="col">
+                        <button
+                            type="button"
+                            className="btn btn-primary w-100"
+                            onClick={() => openBookmarkList(bookmarks[0].id)}
+                        >
+                            Open Bookmark List
+                        </button>
+                    </div>
+                </div>
+                <div className="row mt-5 mb-5">
+                    <div className="col">
+                        <button
+                            type="button"
+                            className="btn btn-primary w-100"
+                            onClick={closeModal}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+
 
                 
             </Modal>
