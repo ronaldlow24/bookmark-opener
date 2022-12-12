@@ -14,10 +14,10 @@ const modalCustomStyles = {
     },
 };
 
-
 //validate url using regex for http and https
 const validateUrl = (url: string) => {
-    const urlRegex = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/;
+    const urlRegex =
+        /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/;
     return urlRegex.test(url);
 };
 
@@ -64,13 +64,13 @@ type ModalComponentType = {
     modalMode: ModalMode;
     closeModal: () => void;
     bookmarkList?: BookmarkListType;
-    createOrUpdateBookmarkList: (bookmarkList: BookmarkListType) => void;
+    createOrUpdateBookmarkList: (bookmarkList: BookmarkListType) => boolean;
 };
 
 type ModalStatusType = {
     isModalOpen: boolean;
-    modalMode: ModalMode
-}
+    modalMode: ModalMode;
+};
 
 const ModalAddMode = "ADD";
 const ModalEditMode = "EDIT";
@@ -102,8 +102,8 @@ const ModalComponent: React.FC<ModalComponentType> = ({
             title: bookmarkListTitle,
             bookmarks: bookmarkState,
         };
-        createOrUpdateBookmarkList(newBookmarkList);
-        clearAndCloseModal();
+        const result = createOrUpdateBookmarkList(newBookmarkList);
+        if (result) clearAndCloseModal();
     };
 
     const removeBookmarkFromList = (bookmarkId: string) => {
@@ -335,7 +335,11 @@ Modal.setAppElement("#root");
 
 function App() {
     const [bookmarkLists, setBookmarksList] = useState<BookmarkListType[]>([]);
-    const [modalStatus, setModalStatus] = useState<ModalStatusType>({ isModalOpen: false, modalMode: DefaultModalMode });
+    const [modalStatus, setModalStatus] = useState<ModalStatusType>({
+        isModalOpen: false,
+        modalMode: DefaultModalMode,
+    });
+    const [searchText, setSearchText] = useState<string>("");
 
     const openModal = (mode: ModalMode) => {
         setModalStatus({ isModalOpen: true, modalMode: mode });
@@ -369,7 +373,7 @@ function App() {
                 progress: undefined,
                 theme: "colored",
             });
-            return;
+            return false;
         }
 
         //validate bookmark list bookmarks
@@ -384,7 +388,7 @@ function App() {
                 progress: undefined,
                 theme: "colored",
             });
-            return;
+            return false;
         }
 
         //validate bookmark list bookmarks title is not empty
@@ -404,7 +408,7 @@ function App() {
                 progress: undefined,
                 theme: "colored",
             });
-            return;
+            return false;
         }
 
         //validate bookmark list bookmarks url is not empty
@@ -424,7 +428,7 @@ function App() {
                 progress: undefined,
                 theme: "colored",
             });
-            return;
+            return false;
         }
 
         //validate bookmark list bookmarks url is valid
@@ -444,7 +448,7 @@ function App() {
                 progress: undefined,
                 theme: "colored",
             });
-            return;
+            return false;
         }
 
         if (model.id) {
@@ -467,6 +471,7 @@ function App() {
                 },
             ]);
         }
+        return true;
     };
 
     const removeBookmarkList = (id: string) => {
@@ -474,6 +479,13 @@ function App() {
             prev.filter((bookmark) => bookmark.id !== id)
         );
     };
+
+    const renderedBookmarkLists = bookmarkLists.filter((bookmarkList) => {
+        return bookmarkList.title
+            .toLowerCase()
+            .trim()
+            .includes(searchText.toLowerCase().trim());
+    });
 
     return (
         <>
@@ -485,7 +497,7 @@ function App() {
                 createOrUpdateBookmarkList={createOrUpdateBookmarkList}
             />
             <div className="container">
-                <div className="row mt-5 mb-5">
+                <div className="row mt-5 mb-3">
                     <div className="col">
                         <button
                             type="button"
@@ -496,7 +508,19 @@ function App() {
                         </button>
                     </div>
                 </div>
-                {bookmarkLists.length === 0 ? (
+                <div className="row mt-5 mb-5">
+                    <div className="col">
+                        <h5>Search</h5>
+                        <input
+                            type="search"
+                            className="form-control"
+                            onChange={(e) => setSearchText(e.target.value)}
+                            placeholder="Search Bookmark List"
+                        />
+                    </div>
+                </div>
+
+                {renderedBookmarkLists.length === 0 ? (
                     <div className="row mt-5">
                         <div className="col">
                             <h3 className="text-center">
@@ -505,7 +529,7 @@ function App() {
                         </div>
                     </div>
                 ) : (
-                    bookmarkLists.map((bookmarkList) => {
+                    renderedBookmarkLists.map((bookmarkList) => {
                         return (
                             <div className="row mt-3" key={bookmarkList.id}>
                                 <div className="col">
@@ -531,23 +555,26 @@ function App() {
                                                                                 bookmark.title
                                                                             }
                                                                         </h5>
-                                                                        <p className="card-text">
+                                                                        <a
+                                                                            className="card-text"
+                                                                            href={
+                                                                                bookmark.url
+                                                                            }
+                                                                            target="_blank"
+                                                                        >
                                                                             {
                                                                                 bookmark.url
                                                                             }
-                                                                        </p>
-                                                                        
+                                                                        </a>
                                                                     </div>
                                                                 </div>
                                                             </div>
-
-                                                            
                                                         );
                                                     }
                                                 )}
                                             </div>
                                             <div className="row mt-3">
-                                                <div className="col">
+                                                <div className="col-4">
                                                     <button
                                                         type="button"
                                                         className="btn btn-primary w-100"
@@ -559,6 +586,8 @@ function App() {
                                                     >
                                                         Open All
                                                     </button>
+                                                </div>
+                                                <div className="col-4">
                                                     <button
                                                         type="button"
                                                         className="btn btn-primary w-100"
@@ -570,9 +599,11 @@ function App() {
                                                     >
                                                         Edit
                                                     </button>
+                                                </div>
+                                                <div className="col-4">
                                                     <button
                                                         type="button"
-                                                        className="btn btn-danger w-100 mt-3"
+                                                        className="btn btn-danger w-100"
                                                         onClick={() =>
                                                             removeBookmarkList(
                                                                 bookmarkList.id!
