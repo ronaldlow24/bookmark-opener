@@ -69,7 +69,7 @@ type ModalComponentType = {
 
 type ModalStatusType = {
     isModalOpen: boolean;
-    modalMode: ModalMode;
+    modalMode?: ModalMode;
 };
 
 const ModalAddMode = "ADD";
@@ -341,12 +341,23 @@ function App() {
     });
     const [searchText, setSearchText] = useState<string>("");
 
-    const openModal = (mode: ModalMode) => {
-        setModalStatus({ isModalOpen: true, modalMode: mode });
+    const [editingBookmarkList, setEditingBookmarkList] = useState<BookmarkListType>();
+
+    const openNewModal = () => {
+        setModalStatus({ isModalOpen: true, modalMode: ModalAddMode });
+    };
+
+    const openExistingModal = (bookmarkListId : string) => {
+
+        setEditingBookmarkList(bookmarkLists.find(
+            (bookmarkList) => bookmarkList.id === bookmarkListId
+        ));
+                
+        setModalStatus({ isModalOpen: true, modalMode: ModalEditMode });
     };
 
     const closeModal = () => {
-        setModalStatus({ isModalOpen: false, modalMode: DefaultModalMode });
+        setModalStatus({ isModalOpen: false });
     };
 
     const openBookmarkListBookmarkInNewTab = (bookmarkListId: string) => {
@@ -492,8 +503,9 @@ function App() {
             <ToastContainer />
             <ModalComponent
                 isModalOpen={modalStatus.isModalOpen}
-                modalMode={modalStatus.modalMode}
+                modalMode={modalStatus.modalMode!}
                 closeModal={closeModal}
+                bookmarkList={editingBookmarkList}
                 createOrUpdateBookmarkList={createOrUpdateBookmarkList}
             />
             <div className="container">
@@ -502,7 +514,7 @@ function App() {
                         <button
                             type="button"
                             className="btn btn-primary w-100"
-                            onClick={() => openModal(ModalAddMode)}
+                            onClick={() => openNewModal()}
                         >
                             + Add Bookmark
                         </button>
@@ -592,8 +604,8 @@ function App() {
                                                         type="button"
                                                         className="btn btn-primary w-100"
                                                         onClick={() =>
-                                                            openModal(
-                                                                ModalEditMode
+                                                            openExistingModal(
+                                                                bookmarkList.id!
                                                             )
                                                         }
                                                     >
