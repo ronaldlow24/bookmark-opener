@@ -60,6 +60,11 @@ type ModalComponentType = {
     createOrUpdateBookmarkList: (bookmarkList: BookmarkListType) => void;
 };
 
+type ModalStatusType = {
+    isModalOpen: boolean;
+    modalMode: ModalMode
+}
+
 const ModalAddMode = "ADD";
 const ModalEditMode = "EDIT";
 const DefaultModalMode = ModalAddMode;
@@ -306,17 +311,14 @@ Modal.setAppElement("#root");
 
 function App() {
     const [bookmarkLists, setBookmarksList] = useState<BookmarkListType[]>([]);
-    const [modalOpen, setModalOpen] = useState(false);
-    const [modalMode, setModalMode] = useState<ModalMode>(ModalAddMode);
+    const [modalStatus, setModalStatus] = useState<ModalStatusType>({ isModalOpen: false, modalMode: DefaultModalMode });
 
     const openModal = (mode: ModalMode) => {
-        setModalOpen(true);
-        setModalMode(mode);
+        setModalStatus({ isModalOpen: true, modalMode: mode });
     };
 
     const closeModal = () => {
-        setModalOpen(false);
-        setModalMode(DefaultModalMode);
+        setModalStatus({ isModalOpen: false, modalMode: DefaultModalMode });
     };
 
     const openBookmarkListBookmarkInNewTab = (bookmarkListId: string) => {
@@ -436,8 +438,8 @@ function App() {
         <>
             <ToastContainer />
             <ModalComponent
-                isModalOpen={modalOpen}
-                modalMode={modalMode}
+                isModalOpen={modalStatus.isModalOpen}
+                modalMode={modalStatus.modalMode}
                 closeModal={closeModal}
                 createOrUpdateBookmarkList={createOrUpdateBookmarkList}
             />
