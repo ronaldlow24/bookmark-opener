@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Modal from "react-modal";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const modalCustomStyles = {
     content: {
@@ -39,7 +41,7 @@ const generateUUID = () => {
 };
 
 type BookmarkListType = {
-    id: string;
+    id?: string;
     title: string;
     bookmarks: BookmarkType[];
 };
@@ -70,7 +72,8 @@ const ModalComponent: React.FC<ModalComponentType> = ({
     bookmarkList,
     createOrUpdateBookmarkList,
 }) => {
-    const bookmarkListId = bookmarkList?.id ?? generateUUID();
+    const bookmarkListId = bookmarkList?.id;
+
     const [bookmarkListTitle, setTitle] = useState<string>(
         bookmarkList?.title ?? ""
     );
@@ -96,10 +99,18 @@ const ModalComponent: React.FC<ModalComponentType> = ({
         });
     };
 
+    const clearAndCloseModal = () => {
+        setTitle("");
+        setBookmarkState([]);
+        setBookmarkTitle("");
+        setBookmarkUrl("");
+        closeModal();
+    };
+
     return (
         <Modal
             isOpen={isModalOpen}
-            onRequestClose={closeModal}
+            onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
         >
@@ -173,7 +184,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                 />
                                 <div className="input-group-append">
                                     <button
-                                        className="btn btn-outline-secondary"
+                                        className="btn btn-danger"
                                         type="button"
                                         onClick={() =>
                                             removeBookmarkFromList(bookmark.id)
@@ -207,9 +218,42 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                         />
                         <div className="input-group-append">
                             <button
-                                className="btn btn-outline-secondary"
+                                className="btn btn-success"
                                 type="button"
                                 onClick={() => {
+                                    //validation
+                                    if (bookmarkTitle === "") {
+                                        toast.error(
+                                            "Bookmark Title Is Missing!",
+                                            {
+                                                position: "top-right",
+                                                autoClose: 1500,
+                                                hideProgressBar: false,
+                                                closeOnClick: true,
+                                                pauseOnHover: true,
+                                                draggable: true,
+                                                progress: undefined,
+                                                theme: "colored",
+                                            }
+                                        );
+                                        return;
+                                    }
+                                    if (bookmarkUrl === "") {
+                                        toast.error(
+                                            "Bookmark URL Is missing!",
+                                            {
+                                                position: "top-right",
+                                                autoClose: 1500,
+                                                hideProgressBar: false,
+                                                closeOnClick: true,
+                                                pauseOnHover: true,
+                                                draggable: true,
+                                                progress: undefined,
+                                                theme: "colored",
+                                            }
+                                        );
+                                        return;
+                                    }
                                     setBookmarkState((prev) => {
                                         return [
                                             ...prev,
@@ -231,7 +275,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                 </div>
             </div>
 
-            <div className="row">
+            <div className="row mt-5 mb-1">
                 <div className="col">
                     <button
                         type="button"
@@ -243,12 +287,12 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                 </div>
             </div>
 
-            <div className="row mt-5 mb-5">
+            <div className="row mt-1 mb-1">
                 <div className="col">
                     <button
                         type="button"
                         className="btn btn-primary w-100"
-                        onClick={() => closeModal()}
+                        onClick={() => clearAndCloseModal()}
                     >
                         Close
                     </button>
@@ -287,6 +331,76 @@ function App() {
     };
 
     const createOrUpdateBookmarkList = (model: BookmarkListType) => {
+        //validate bookmark list title
+        if (!model.title || model.title.trim() === "") {
+            toast.error("Bookmark List Title Is Missing!", {
+                position: "top-right",
+                autoClose: 1500,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
+            return;
+        }
+
+        //validate bookmark list bookmarks
+        if (!model.bookmarks || model.bookmarks.length === 0) {
+            toast.error("Bookmarks Is Missing!", {
+                position: "top-right",
+                autoClose: 1500,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
+            return;
+        }
+
+        //validate bookmark list bookmarks title is not empty
+        const bookmarkListBookmarksTitleIsEmpty = model.bookmarks.find(
+            (bookmark) => {
+                return !bookmark.title || bookmark.title.trim() === "";
+            }
+        );
+        if (bookmarkListBookmarksTitleIsEmpty) {
+            toast.error("Bookmark List Bookmarks Title Is Missing!", {
+                position: "top-right",
+                autoClose: 1500,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
+            return;
+        }
+
+        //validate bookmark list bookmarks url is not empty
+        const bookmarkListBookmarksUrlIsEmpty = model.bookmarks.find(
+            (bookmark) => {
+                return !bookmark.url || bookmark.url.trim() === "";
+            }
+        );
+        if (bookmarkListBookmarksUrlIsEmpty) {
+            toast.error("Bookmark List Bookmarks URL Is Missing!", {
+                position: "top-right",
+                autoClose: 1500,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
+            return;
+        }
+
         if (model.id) {
             setBookmarksList((prev) => {
                 return prev.map((bookmark) => {
@@ -307,6 +421,9 @@ function App() {
                 },
             ]);
         }
+
+        //clear modal
+        closeModal();
     };
 
     const removeBookmarkList = (id: string) => {
@@ -317,10 +434,11 @@ function App() {
 
     return (
         <>
+            <ToastContainer />
             <ModalComponent
                 isModalOpen={modalOpen}
                 modalMode={modalMode}
-                closeModal={() => closeModal()}
+                closeModal={closeModal}
                 createOrUpdateBookmarkList={createOrUpdateBookmarkList}
             />
             <div className="container">
@@ -335,77 +453,90 @@ function App() {
                         </button>
                     </div>
                 </div>
-
-                {bookmarkLists.map((bookmark) => {
-                    return (
-                        <div className="row mt-3" key={bookmark.id}>
-                            <div className="col">
-                                <div className="card">
-                                    <div className="card-body">
-                                        <h5 className="card-title">
-                                            {bookmark.title}
-                                        </h5>
-                                        <div className="row">
-                                            {bookmark.bookmarks.map(
-                                                (bookmark) => {
-                                                    return (
-                                                        <div
-                                                            className="col-6"
-                                                            key={bookmark.id}
-                                                        >
-                                                            <a
-                                                                href={
-                                                                    bookmark.url
+                {bookmarkLists.length === 0 ? (
+                    <div className="row mt-5">
+                        <div className="col">
+                            <h3 className="text-center">
+                                No Bookmark List Found!
+                            </h3>
+                        </div>
+                    </div>
+                ) : (
+                    bookmarkLists.map((bookmarkList) => {
+                        return (
+                            <div className="row mt-3" key={bookmarkList.id}>
+                                <div className="col">
+                                    <div className="card">
+                                        <div className="card-body">
+                                            <h5 className="card-title">
+                                                {bookmarkList.title}
+                                            </h5>
+                                            <div className="row">
+                                                {bookmarkList.bookmarks.map(
+                                                    (bookmark) => {
+                                                        return (
+                                                            <div
+                                                                className="col-6"
+                                                                key={
+                                                                    bookmark.id
                                                                 }
                                                             >
-                                                                Open Link
-                                                            </a>
-                                                        </div>
-                                                    );
-                                                }
-                                            )}
-                                        </div>
-                                        <div className="row mt-3">
-                                            <div className="col">
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-primary w-100"
-                                                    onClick={() =>
-                                                        openBookmarkListBookmarkInNewTab(
-                                                            bookmark.id
-                                                        )
+                                                                <a
+                                                                    href={
+                                                                        bookmark.url
+                                                                    }
+                                                                >
+                                                                    Open Link
+                                                                </a>
+                                                            </div>
+                                                        );
                                                     }
-                                                >
-                                                    Open All
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-primary w-100"
-                                                    onClick={() =>
-                                                        openModal(ModalEditMode)
-                                                    }
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-danger w-100 mt-3"
-                                                    onClick={() =>
-                                                        removeBookmarkList(
-                                                            bookmark.id
-                                                        )
-                                                    }
-                                                >
-                                                    Remove
-                                                </button>
+                                                )}
+                                            </div>
+                                            <div className="row mt-3">
+                                                <div className="col">
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-primary w-100"
+                                                        onClick={() =>
+                                                            openBookmarkListBookmarkInNewTab(
+                                                                bookmarkList.id!
+                                                            )
+                                                        }
+                                                    >
+                                                        Open All
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-primary w-100"
+                                                        onClick={() =>
+                                                            openModal(
+                                                                ModalEditMode
+                                                            )
+                                                        }
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-danger w-100 mt-3"
+                                                        onClick={() =>
+                                                            removeBookmarkList(
+                                                                bookmarkList.id!
+                                                            )
+                                                        }
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
         </>
     );
