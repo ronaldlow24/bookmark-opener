@@ -14,6 +14,13 @@ const modalCustomStyles = {
     },
 };
 
+
+//validate url using regex for http and https
+const validateUrl = (url: string) => {
+    const urlRegex = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/;
+    return urlRegex.test(url);
+};
+
 const generateUUID = () => {
     // Public Domain/MIT
     var d = new Date().getTime(); //Timestamp
@@ -96,6 +103,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
             bookmarks: bookmarkState,
         };
         createOrUpdateBookmarkList(newBookmarkList);
+        clearAndCloseModal();
     };
 
     const removeBookmarkFromList = (bookmarkId: string) => {
@@ -259,6 +267,22 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                         );
                                         return;
                                     }
+                                    if (!validateUrl(bookmarkUrl)) {
+                                        toast.error(
+                                            "Bookmark URL Is Invalid!",
+                                            {
+                                                position: "top-right",
+                                                autoClose: 1500,
+                                                hideProgressBar: false,
+                                                closeOnClick: true,
+                                                pauseOnHover: true,
+                                                draggable: true,
+                                                progress: undefined,
+                                                theme: "colored",
+                                            }
+                                        );
+                                        return;
+                                    }
                                     setBookmarkState((prev) => {
                                         return [
                                             ...prev,
@@ -403,6 +427,26 @@ function App() {
             return;
         }
 
+        //validate bookmark list bookmarks url is valid
+        const bookmarkListBookmarksUrlIsInvalid = model.bookmarks.find(
+            (bookmark) => {
+                return !validateUrl(bookmark.url);
+            }
+        );
+        if (bookmarkListBookmarksUrlIsInvalid) {
+            toast.error("Bookmark List Bookmarks URL Is Invalid!", {
+                position: "top-right",
+                autoClose: 1500,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+            });
+            return;
+        }
+
         if (model.id) {
             setBookmarksList((prev) => {
                 return prev.map((bookmark) => {
@@ -423,9 +467,6 @@ function App() {
                 },
             ]);
         }
-
-        //clear modal
-        closeModal();
     };
 
     const removeBookmarkList = (id: string) => {
@@ -478,19 +519,29 @@ function App() {
                                                     (bookmark) => {
                                                         return (
                                                             <div
-                                                                className="col-6"
+                                                                className="col"
                                                                 key={
                                                                     bookmark.id
                                                                 }
                                                             >
-                                                                <a
-                                                                    href={
-                                                                        bookmark.url
-                                                                    }
-                                                                >
-                                                                    Open Link
-                                                                </a>
+                                                                <div className="card">
+                                                                    <div className="card-body">
+                                                                        <h5 className="card-title">
+                                                                            {
+                                                                                bookmark.title
+                                                                            }
+                                                                        </h5>
+                                                                        <p className="card-text">
+                                                                            {
+                                                                                bookmark.url
+                                                                            }
+                                                                        </p>
+                                                                        
+                                                                    </div>
+                                                                </div>
                                                             </div>
+
+                                                            
                                                         );
                                                     }
                                                 )}
