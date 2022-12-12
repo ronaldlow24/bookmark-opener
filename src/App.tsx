@@ -12,186 +12,7 @@ const modalCustomStyles = {
     },
 };
 
-type BookmarkListType = {
-    id: string;
-    title: string;
-    bookmarks: BookmarkType[];
-};
-
-type BookmarkType = {
-    id: string;
-    title: string;
-    url: string;
-};
-
-type ModalComponentType = {
-    modalIsOpen: boolean;
-    modalMode: ModalMode;
-    closeModal: () => void;
-    bookmarkList?: BookmarkListType;
-};
-
-const ModalAddMode = "ADD";
-const ModalEditMode = "EDIT";
-const DefaultModalMode = ModalAddMode;
-type ModalMode = typeof ModalAddMode | typeof ModalEditMode;
-
-const ModalComponent: React.FC<ModalComponentType> = ({
-    modalIsOpen,
-    modalMode,
-    closeModal,
-    bookmarkList,
-}) => {
-    const addBookmarkList = (title: string, bookmarks: BookmarkType[]) => {
-        //get uuid
-        const id = generateUUID();
-        setBookmarks((prev) => [...prev, { id, title, bookmarks }]);
-    };
-
-    const removeBookmarkList = (id: string) => {
-        setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id));
-    };
-
-    const openBookmarkList = (id: string) => {
-        const bookmarkList = bookmarks.find((bookmark) => bookmark.id === id);
-        if (!bookmarkList) return;
-
-        //open link in new tab
-        bookmarkList.bookmarks.forEach((bookmark) => {
-            window.open(bookmark.url, "_blank");
-        });
-    };
-
-    const addBookmarkToList = (id: string, title: string, url: string) => {
-        const bookmarkId = generateUUID();
-        setBookmarks((prev) => {
-            return prev.map((bookmark) => {
-                if (bookmark.id === id) {
-                    return {
-                        ...bookmark,
-                        bookmarks: [
-                            ...bookmark.bookmarks,
-                            { id: bookmarkId, title, url },
-                        ],
-                    };
-                }
-                return bookmark;
-            });
-        });
-    };
-
-    const removeBookmarkFromList = (id: string, bookmarkId: string) => {
-        setBookmarks((prev) => {
-            return prev.map((bookmark) => {
-                if (bookmark.id === id) {
-                    return {
-                        ...bookmark,
-                        bookmarks: bookmark.bookmarks.filter(
-                            (bookmark) => bookmark.id !== bookmarkId
-                        ),
-                    };
-                }
-                return bookmark;
-            });
-        });
-    };
-
-    return (
-        <Modal
-            isOpen={modalIsOpen}
-            onRequestClose={closeModal}
-            style={modalCustomStyles}
-            contentLabel="Example Modal"
-        >
-            <div className="row">
-                <div className="col">
-                    <h2>Add Bookmark</h2>
-                </div>
-            </div>
-            <div className="row">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-primary w-100"
-                        onClick={() => addBookmarkList("Test", [])}
-                    >
-                        Add Bookmark List
-                    </button>
-                </div>
-            </div>
-            <div className="row">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-primary w-100"
-                        onClick={() =>
-                            addBookmarkToList(
-                                bookmarks[0].id,
-                                "Test",
-                                "https://google.com"
-                            )
-                        }
-                    >
-                        Add Bookmark to List
-                    </button>
-                </div>
-            </div>
-            <div className="row">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-primary w-100"
-                        onClick={() =>
-                            removeBookmarkFromList(
-                                bookmarks[0].id,
-                                bookmarks[0].bookmarks[0].id
-                            )
-                        }
-                    >
-                        Remove Bookmark from List
-                    </button>
-                </div>
-            </div>
-            <div className="row">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-primary w-100"
-                        onClick={() => removeBookmarkList(bookmarks[0].id)}
-                    >
-                        Remove Bookmark List
-                    </button>
-                </div>
-            </div>
-            <div className="row">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-primary w-100"
-                        onClick={() => openBookmarkList(bookmarks[0].id)}
-                    >
-                        Open Bookmark List
-                    </button>
-                </div>
-            </div>
-            <div className="row mt-5 mb-5">
-                <div className="col">
-                    <button
-                        type="button"
-                        className="btn btn-primary w-100"
-                        onClick={closeModal}
-                    >
-                        Close
-                    </button>
-                </div>
-            </div>
-        </Modal>
-    );
-};
-
-Modal.setAppElement("#root");
-
-function generateUUID() {
+const generateUUID = () => {
     // Public Domain/MIT
     var d = new Date().getTime(); //Timestamp
     var d2 =
@@ -215,28 +36,376 @@ function generateUUID() {
             return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
         }
     );
-}
+};
+
+type BookmarkListType = {
+    id: string;
+    title: string;
+    bookmarks: BookmarkType[];
+};
+
+type BookmarkType = {
+    id: string;
+    title: string;
+    url: string;
+};
+
+type ModalComponentType = {
+    isModalOpen: boolean;
+    modalMode: ModalMode;
+    closeModal: () => void;
+    bookmarkList?: BookmarkListType;
+    createOrUpdateBookmarkList: (bookmarkList: BookmarkListType) => void;
+};
+
+const ModalAddMode = "ADD";
+const ModalEditMode = "EDIT";
+const DefaultModalMode = ModalAddMode;
+type ModalMode = typeof ModalAddMode | typeof ModalEditMode;
+
+const ModalComponent: React.FC<ModalComponentType> = ({
+    isModalOpen,
+    modalMode,
+    closeModal,
+    bookmarkList,
+    createOrUpdateBookmarkList,
+}) => {
+    const bookmarkListId = bookmarkList?.id ?? generateUUID();
+    const [bookmarkListTitle, setTitle] = useState<string>(
+        bookmarkList?.title ?? ""
+    );
+    const [bookmarkState, setBookmarkState] = useState<BookmarkType[]>(
+        bookmarkList?.bookmarks ?? []
+    );
+
+    const [bookmarkTitle, setBookmarkTitle] = useState<string>("");
+    const [bookmarkUrl, setBookmarkUrl] = useState<string>("");
+
+    const handleCreateOrUpdateBookmarkList = () => {
+        const newBookmarkList: BookmarkListType = {
+            id: bookmarkListId,
+            title: bookmarkListTitle,
+            bookmarks: bookmarkState,
+        };
+        createOrUpdateBookmarkList(newBookmarkList);
+    };
+
+    const removeBookmarkFromList = (bookmarkId: string) => {
+        setBookmarkState((prev) => {
+            return prev.filter((bookmark) => bookmark.id !== bookmarkId);
+        });
+    };
+
+    return (
+        <Modal
+            isOpen={isModalOpen}
+            onRequestClose={closeModal}
+            style={modalCustomStyles}
+            contentLabel="Example Modal"
+        >
+            <div className="row">
+                <div className="col">
+                    <h2>
+                        {modalMode == ModalAddMode ? "Add" : "Edit"} Bookmark
+                        List
+                    </h2>
+                </div>
+            </div>
+
+            <div className="row mt-3">
+                <div className="col">
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Bookmark List Title"
+                            value={bookmarkListTitle}
+                            onChange={(e) => setTitle(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {bookmarkState.map((bookmark) => {
+                return (
+                    <div className="row mt-3" key={bookmark.id}>
+                        <div className="col">
+                            <div className="input-group">
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Bookmark Title"
+                                    value={bookmark.title}
+                                    onChange={(e) => {
+                                        const newBookmarkState =
+                                            bookmarkState.map((bookmark) => {
+                                                if (
+                                                    bookmark.id ===
+                                                    bookmarkListId
+                                                ) {
+                                                    bookmark.title =
+                                                        e.target.value;
+                                                }
+                                                return bookmark;
+                                            });
+                                        setBookmarkState(newBookmarkState);
+                                    }}
+                                />
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Bookmark URL"
+                                    value={bookmark.url}
+                                    onChange={(e) => {
+                                        const newBookmarkState =
+                                            bookmarkState.map((bookmark) => {
+                                                if (
+                                                    bookmark.id ===
+                                                    bookmarkListId
+                                                ) {
+                                                    bookmark.url =
+                                                        e.target.value;
+                                                }
+                                                return bookmark;
+                                            });
+                                        setBookmarkState(newBookmarkState);
+                                    }}
+                                />
+                                <div className="input-group-append">
+                                    <button
+                                        className="btn btn-outline-secondary"
+                                        type="button"
+                                        onClick={() =>
+                                            removeBookmarkFromList(bookmark.id)
+                                        }
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+
+            <div className="row mt-3">
+                <div className="col">
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Bookmark Title"
+                            value={bookmarkTitle}
+                            onChange={(e) => setBookmarkTitle(e.target.value)}
+                        />
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Bookmark URL"
+                            value={bookmarkUrl}
+                            onChange={(e) => setBookmarkUrl(e.target.value)}
+                        />
+                        <div className="input-group-append">
+                            <button
+                                className="btn btn-outline-secondary"
+                                type="button"
+                                onClick={() => {
+                                    setBookmarkState((prev) => {
+                                        return [
+                                            ...prev,
+                                            {
+                                                id: generateUUID(),
+                                                title: bookmarkTitle,
+                                                url: bookmarkUrl,
+                                            },
+                                        ];
+                                    });
+                                    setBookmarkTitle("");
+                                    setBookmarkUrl("");
+                                }}
+                            >
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="row">
+                <div className="col">
+                    <button
+                        type="button"
+                        className="btn btn-primary w-100"
+                        onClick={() => handleCreateOrUpdateBookmarkList()}
+                    >
+                        Save Change
+                    </button>
+                </div>
+            </div>
+
+            <div className="row mt-5 mb-5">
+                <div className="col">
+                    <button
+                        type="button"
+                        className="btn btn-primary w-100"
+                        onClick={() => closeModal()}
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
+Modal.setAppElement("#root");
 
 function App() {
-    const [bookmarks, setBookmarks] = useState<BookmarkListType[]>([]);
-    const [modalIsOpen, setModalIsOpen] = useState(false);
-    const [modalMode, setModalMode] = useState<ModalMode>(DefaultModalMode);
+    const [bookmarkLists, setBookmarksList] = useState<BookmarkListType[]>([]);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState<ModalMode>(ModalAddMode);
+
+    const openModal = (mode: ModalMode) => {
+        setModalOpen(true);
+        setModalMode(mode);
+    };
+
+    const closeModal = () => {
+        setModalOpen(false);
+        setModalMode(DefaultModalMode);
+    };
+
+    const openBookmarkListBookmarkInNewTab = (bookmarkListId: string) => {
+        const bookmarkList = bookmarkLists.find(
+            (bookmarkList) => bookmarkList.id === bookmarkListId
+        );
+        if (bookmarkList) {
+            bookmarkList.bookmarks.forEach((bookmark) => {
+                window.open(bookmark.url, "_blank");
+            });
+        }
+    };
+
+    const createOrUpdateBookmarkList = (model: BookmarkListType) => {
+        if (model.id) {
+            setBookmarksList((prev) => {
+                return prev.map((bookmark) => {
+                    if (bookmark.id === model.id) {
+                        return model;
+                    }
+                    return bookmark;
+                });
+            });
+        } else {
+            const newId = generateUUID();
+            setBookmarksList((prev) => [
+                ...prev,
+                {
+                    id: newId,
+                    title: model.title,
+                    bookmarks: model.bookmarks,
+                },
+            ]);
+        }
+    };
+
+    const removeBookmarkList = (id: string) => {
+        setBookmarksList((prev) =>
+            prev.filter((bookmark) => bookmark.id !== id)
+        );
+    };
 
     return (
         <>
-            <ModalComponent modalIsOpen={modalIsOpen} modalMode={modalMode} closeModal={() => setModalIsOpen(false)} />
+            <ModalComponent
+                isModalOpen={modalOpen}
+                modalMode={modalMode}
+                closeModal={() => closeModal()}
+                createOrUpdateBookmarkList={createOrUpdateBookmarkList}
+            />
             <div className="container">
                 <div className="row mt-5 mb-5">
                     <div className="col">
                         <button
                             type="button"
                             className="btn btn-primary w-100"
-                            onClick={() => setModalIsOpen(true)}
+                            onClick={() => openModal(ModalAddMode)}
                         >
                             + Add Bookmark
                         </button>
                     </div>
                 </div>
+
+                {bookmarkLists.map((bookmark) => {
+                    return (
+                        <div className="row mt-3" key={bookmark.id}>
+                            <div className="col">
+                                <div className="card">
+                                    <div className="card-body">
+                                        <h5 className="card-title">
+                                            {bookmark.title}
+                                        </h5>
+                                        <div className="row">
+                                            {bookmark.bookmarks.map(
+                                                (bookmark) => {
+                                                    return (
+                                                        <div
+                                                            className="col-6"
+                                                            key={bookmark.id}
+                                                        >
+                                                            <a
+                                                                href={
+                                                                    bookmark.url
+                                                                }
+                                                            >
+                                                                Open Link
+                                                            </a>
+                                                        </div>
+                                                    );
+                                                }
+                                            )}
+                                        </div>
+                                        <div className="row mt-3">
+                                            <div className="col">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-primary w-100"
+                                                    onClick={() =>
+                                                        openBookmarkListBookmarkInNewTab(
+                                                            bookmark.id
+                                                        )
+                                                    }
+                                                >
+                                                    Open All
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-primary w-100"
+                                                    onClick={() =>
+                                                        openModal(ModalEditMode)
+                                                    }
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-danger w-100 mt-3"
+                                                    onClick={() =>
+                                                        removeBookmarkList(
+                                                            bookmark.id
+                                                        )
+                                                    }
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </>
     );
