@@ -84,32 +84,20 @@ const ModalComponent: React.FC<ModalComponentType> = ({
     bookmarkList,
     createOrUpdateBookmarkList,
 }) => {
-    const bookmarkListId = bookmarkList?.id;
 
-    const [bookmarkListTitle, setTitle] = useState<string>(
-        bookmarkList?.title ?? ""
-    );
-    const [bookmarkState, setBookmarkState] = useState<BookmarkType[]>(
-        bookmarkList?.bookmarks ?? []
-    );
-
+    const [bookmarkListTitle, setTitle] = useState<string>("");
+    const [bookmarkState, setBookmarkState] = useState<BookmarkType[]>([]);
     const [bookmarkTitle, setBookmarkTitle] = useState<string>("");
     const [bookmarkUrl, setBookmarkUrl] = useState<string>("");
 
     const handleCreateOrUpdateBookmarkList = () => {
         const newBookmarkList: BookmarkListType = {
-            id: bookmarkListId,
+            id: bookmarkList?.id,
             title: bookmarkListTitle,
             bookmarks: bookmarkState,
         };
         const result = createOrUpdateBookmarkList(newBookmarkList);
         if (result) clearAndCloseModal();
-    };
-
-    const removeBookmarkFromList = (bookmarkId: string) => {
-        setBookmarkState((prev) => {
-            return prev.filter((bookmark) => bookmark.id !== bookmarkId);
-        });
     };
 
     const clearAndCloseModal = () => {
@@ -162,15 +150,15 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                     value={bookmark.title}
                                     onChange={(e) => {
                                         const newBookmarkState =
-                                            bookmarkState.map((bookmark) => {
+                                            bookmarkState.map((item) => {
                                                 if (
-                                                    bookmark.id ===
-                                                    bookmarkListId
+                                                    item.id ===
+                                                    bookmark.id
                                                 ) {
-                                                    bookmark.title =
+                                                    item.title =
                                                         e.target.value;
                                                 }
-                                                return bookmark;
+                                                return item;
                                             });
                                         setBookmarkState(newBookmarkState);
                                     }}
@@ -182,15 +170,15 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                     value={bookmark.url}
                                     onChange={(e) => {
                                         const newBookmarkState =
-                                            bookmarkState.map((bookmark) => {
+                                            bookmarkState.map((item) => {
                                                 if (
-                                                    bookmark.id ===
-                                                    bookmarkListId
+                                                    item.id ===
+                                                    bookmark.id
                                                 ) {
-                                                    bookmark.url =
+                                                    item.url =
                                                         e.target.value;
                                                 }
-                                                return bookmark;
+                                                return item;
                                             });
                                         setBookmarkState(newBookmarkState);
                                     }}
@@ -200,7 +188,12 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                         className="btn btn-danger"
                                         type="button"
                                         onClick={() =>
-                                            removeBookmarkFromList(bookmark.id)
+                                            setBookmarkState(
+                                                bookmarkState.filter(
+                                                    (item) =>
+                                                        item.id !== bookmark.id
+                                                )
+                                            )
                                         }
                                     >
                                         Remove
@@ -308,7 +301,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                 <div className="col">
                     <button
                         type="button"
-                        className="btn btn-primary w-100"
+                        className="btn btn-success w-100"
                         onClick={() => handleCreateOrUpdateBookmarkList()}
                     >
                         Save Change
@@ -341,18 +334,20 @@ function App() {
     });
     const [searchText, setSearchText] = useState<string>("");
 
-    const [editingBookmarkList, setEditingBookmarkList] = useState<BookmarkListType>();
+    const [editingBookmarkList, setEditingBookmarkList] =
+        useState<BookmarkListType>();
 
     const openNewModal = () => {
         setModalStatus({ isModalOpen: true, modalMode: ModalAddMode });
     };
 
-    const openExistingModal = (bookmarkListId : string) => {
+    const openExistingModal = (bookmarkListId: string) => {
+        setEditingBookmarkList(
+            bookmarkLists.find(
+                (bookmarkList) => bookmarkList.id === bookmarkListId
+            )
+        );
 
-        setEditingBookmarkList(bookmarkLists.find(
-            (bookmarkList) => bookmarkList.id === bookmarkListId
-        ));
-                
         setModalStatus({ isModalOpen: true, modalMode: ModalEditMode });
     };
 
