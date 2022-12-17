@@ -86,10 +86,8 @@ type BookmarkType = {
 };
 
 type ModalComponentType = {
-    isModalOpen: boolean;
-    modalMode: ModalMode;
+    modelStatus: ModalStatusType;
     closeModal: () => void;
-    bookmarkList?: BookmarkListType;
     createOrUpdateBookmarkList: (
         bookmarkList: BookmarkListType
     ) => Promise<boolean>;
@@ -97,7 +95,8 @@ type ModalComponentType = {
 
 type ModalStatusType = {
     isModalOpen: boolean;
-    modalMode?: ModalMode;
+    modalMode: ModalMode;
+    bookmarkList?: BookmarkListType;
 };
 
 const ModalAddMode = "ADD";
@@ -106,10 +105,8 @@ const DefaultModalMode = ModalAddMode;
 type ModalMode = typeof ModalAddMode | typeof ModalEditMode;
 
 const ModalComponent: React.FC<ModalComponentType> = ({
-    isModalOpen,
-    modalMode,
+    modelStatus,
     closeModal,
-    bookmarkList,
     createOrUpdateBookmarkList,
 }) => {
     const [bookmarkListTitle, setTitle] = useState<string>("");
@@ -118,10 +115,17 @@ const ModalComponent: React.FC<ModalComponentType> = ({
     const [bookmarkUrl, setBookmarkUrl] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
+    useEffect(() => {
+        if (modelStatus.isModalOpen) {
+            setTitle(modelStatus.bookmarkList?.title || "");
+            setBookmarkState(modelStatus.bookmarkList?.bookmarks || []);
+        }
+    }, [modelStatus.isModalOpen, modelStatus.bookmarkList]);
+
     const handleCreateOrUpdateBookmarkList = async () => {
         setIsLoading(true);
         const newBookmarkList: BookmarkListType = {
-            id: bookmarkList?.id,
+            id: modelStatus.bookmarkList?.id,
             title: bookmarkListTitle,
             bookmarks: bookmarkState,
         };
@@ -140,7 +144,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
 
     return (
         <Modal
-            isOpen={isModalOpen}
+            isOpen={modelStatus.isModalOpen}
             onRequestClose={clearAndCloseModal}
             style={modalCustomStyles}
             contentLabel="Example Modal"
@@ -148,7 +152,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
             <div className="row">
                 <div className="col">
                     <h2>
-                        {modalMode == ModalAddMode ? "Add" : "Edit"} Bookmark
+                        {modelStatus.modalMode == ModalAddMode ? "Add" : "Edit"} Bookmark
                         List
                     </h2>
                 </div>
@@ -362,9 +366,6 @@ function App() {
     });
     const [searchText, setSearchText] = useState<string>("");
 
-    const [editingBookmarkList, setEditingBookmarkList] =
-        useState<BookmarkListType>();
-
     const renderedBookmarkLists = bookmarkLists.filter((bookmarkList) => {
         //get bookmark list title and bookmarks title
         return (
@@ -432,17 +433,15 @@ function App() {
     };
 
     const openExistingModal = (bookmarkListId: string) => {
-        setEditingBookmarkList(
-            bookmarkLists.find(
-                (bookmarkList) => bookmarkList.id === bookmarkListId
-            )
+        const bookmarkList = bookmarkLists.find(
+            (bookmarkList) => bookmarkList.id === bookmarkListId
         );
 
-        setModalStatus({ isModalOpen: true, modalMode: ModalEditMode });
+        setModalStatus({ isModalOpen: true, modalMode: ModalEditMode, bookmarkList: bookmarkList });
     };
 
     const closeModal = () => {
-        setModalStatus({ isModalOpen: false });
+        setModalStatus({ isModalOpen: false, modalMode: DefaultModalMode });
     };
 
     const openBookmarkListBookmarkInNewTab = (bookmarkListId: string) => {
@@ -625,10 +624,8 @@ function App() {
         <>
             <ToastContainer />
             <ModalComponent
-                isModalOpen={modalStatus.isModalOpen}
-                modalMode={modalStatus.modalMode!}
+                modelStatus={modalStatus}
                 closeModal={closeModal}
-                bookmarkList={editingBookmarkList}
                 createOrUpdateBookmarkList={createOrUpdateBookmarkList}
             />
             <div className="container">
