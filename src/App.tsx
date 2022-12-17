@@ -1,7 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "react-modal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import setupIndexedDB, { useIndexedDBStore } from "use-indexeddb";
+
+const BookmarkListTableName = "BookmarkList";
+const BookmarkTableName = "Bookmark";
+
+const idbConfig = {
+    databaseName: "bookmark-db",
+    version: 1,
+    stores: [
+        {
+            name: BookmarkListTableName,
+            id: { keyPath: "id" },
+            indices: [{ name: "title", keyPath: "title" }],
+        },
+        {
+            name: BookmarkTableName,
+            id: { keyPath: "id" },
+            indices: [
+                { name: "title", keyPath: "title" },
+                { name: "url", keyPath: "url" },
+                { name: "bookmarkListId", keyPath: "bookmarkListId" },
+            ],
+        },
+    ],
+};
 
 const modalCustomStyles = {
     content: {
@@ -54,9 +79,10 @@ type BookmarkListType = {
 };
 
 type BookmarkType = {
-    id: string;
+    id?: string;
     title: string;
     url: string;
+    bookmarkListId?: string;
 };
 
 type ModalComponentType = {
@@ -64,7 +90,9 @@ type ModalComponentType = {
     modalMode: ModalMode;
     closeModal: () => void;
     bookmarkList?: BookmarkListType;
-    createOrUpdateBookmarkList: (bookmarkList: BookmarkListType) => boolean;
+    createOrUpdateBookmarkList: (
+        bookmarkList: BookmarkListType
+    ) => Promise<boolean>;
 };
 
 type ModalStatusType = {
@@ -84,19 +112,21 @@ const ModalComponent: React.FC<ModalComponentType> = ({
     bookmarkList,
     createOrUpdateBookmarkList,
 }) => {
-
     const [bookmarkListTitle, setTitle] = useState<string>("");
     const [bookmarkState, setBookmarkState] = useState<BookmarkType[]>([]);
     const [bookmarkTitle, setBookmarkTitle] = useState<string>("");
     const [bookmarkUrl, setBookmarkUrl] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const handleCreateOrUpdateBookmarkList = () => {
+    const handleCreateOrUpdateBookmarkList = async () => {
+        setIsLoading(true);
         const newBookmarkList: BookmarkListType = {
             id: bookmarkList?.id,
             title: bookmarkListTitle,
             bookmarks: bookmarkState,
         };
-        const result = createOrUpdateBookmarkList(newBookmarkList);
+        const result = await createOrUpdateBookmarkList(newBookmarkList);
+        setIsLoading(false);
         if (result) clearAndCloseModal();
     };
 
@@ -151,12 +181,8 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                     onChange={(e) => {
                                         const newBookmarkState =
                                             bookmarkState.map((item) => {
-                                                if (
-                                                    item.id ===
-                                                    bookmark.id
-                                                ) {
-                                                    item.title =
-                                                        e.target.value;
+                                                if (item.id === bookmark.id) {
+                                                    item.title = e.target.value;
                                                 }
                                                 return item;
                                             });
@@ -171,12 +197,8 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                     onChange={(e) => {
                                         const newBookmarkState =
                                             bookmarkState.map((item) => {
-                                                if (
-                                                    item.id ===
-                                                    bookmark.id
-                                                ) {
-                                                    item.url =
-                                                        e.target.value;
+                                                if (item.id === bookmark.id) {
+                                                    item.url = e.target.value;
                                                 }
                                                 return item;
                                             });
@@ -185,6 +207,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                                 />
                                 <div className="input-group-append">
                                     <button
+                                        disabled={isLoading}
                                         className="btn btn-danger"
                                         type="button"
                                         onClick={() =>
@@ -224,6 +247,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
                         />
                         <div className="input-group-append">
                             <button
+                                disabled={isLoading}
                                 className="btn btn-success"
                                 type="button"
                                 onClick={() => {
@@ -300,9 +324,12 @@ const ModalComponent: React.FC<ModalComponentType> = ({
             <div className="row mt-5 mb-1">
                 <div className="col">
                     <button
+                        disabled={isLoading}
                         type="button"
                         className="btn btn-success w-100"
-                        onClick={() => handleCreateOrUpdateBookmarkList()}
+                        onClick={async () =>
+                            await handleCreateOrUpdateBookmarkList()
+                        }
                     >
                         Save Change
                     </button>
@@ -312,6 +339,7 @@ const ModalComponent: React.FC<ModalComponentType> = ({
             <div className="row mt-1 mb-1">
                 <div className="col">
                     <button
+                        disabled={isLoading}
                         type="button"
                         className="btn btn-primary w-100"
                         onClick={() => clearAndCloseModal()}
@@ -336,6 +364,68 @@ function App() {
 
     const [editingBookmarkList, setEditingBookmarkList] =
         useState<BookmarkListType>();
+
+    const renderedBookmarkLists = bookmarkLists.filter((bookmarkList) => {
+        //get bookmark list title and bookmarks title
+        return (
+            bookmarkList.title
+                .toLowerCase()
+                .trim()
+                .includes(searchText.toLowerCase().trim()) ||
+            bookmarkList.bookmarks.find((bookmark) => {
+                return bookmark.title
+                    .toLowerCase()
+                    .trim()
+                    .includes(searchText.toLowerCase().trim());
+            })
+        );
+    });
+
+    useEffect(() => {
+        console.log("useEffect for setup indexedDB");
+
+        setupIndexedDB(idbConfig)
+            .then(() => console.log("success"))
+            .catch((e) => console.error("error / unsupported", e));
+    }, []);
+
+    const BookmarkListIndexedDBStore = useIndexedDBStore(BookmarkListTableName);
+    const BookmarkIndexedDBStore = useIndexedDBStore(BookmarkTableName);
+    const dbConfig = {
+        BookmarkList: BookmarkListIndexedDBStore,
+        Bookmark: BookmarkIndexedDBStore,
+    };
+
+    useEffect(() => {
+        console.log("useEffect for getting bookmark list from indexedDB");
+
+        if (dbConfig == undefined) return;
+
+        let ignore = false;
+
+        async function startFetching() {
+            const bookmarkLists =
+                (await dbConfig.BookmarkList.getAll()) as BookmarkListType[];
+            const bookmarks =
+                (await dbConfig.Bookmark.getAll()) as BookmarkType[];
+
+            const bookmarkListsWithBookmarks = bookmarkLists.map(
+                (bookmarkList) => {
+                    bookmarkList.bookmarks = bookmarks.filter((bookmark) => {
+                        return bookmark.bookmarkListId === bookmarkList.id;
+                    });
+                    return bookmarkList;
+                }
+            );
+            if (!ignore) setBookmarksList(bookmarkListsWithBookmarks);
+        }
+
+        startFetching();
+
+        return () => {
+            ignore = true;
+        };
+    }, []);
 
     const openNewModal = () => {
         setModalStatus({ isModalOpen: true, modalMode: ModalAddMode });
@@ -366,7 +456,48 @@ function App() {
         }
     };
 
-    const createOrUpdateBookmarkList = (model: BookmarkListType) => {
+    const DeleteBookmarkListInDatabaseAsync = async (
+        bookmarkListId: string
+    ) => {
+        console.log("delete bookmark list in database async");
+        const bookmarkList = bookmarkLists.find(
+            (bookmarkList) => bookmarkList.id === bookmarkListId
+        );
+        if (bookmarkList) {
+            await dbConfig.BookmarkList.deleteByID(bookmarkListId);
+            const bookmarkIds = bookmarkList.bookmarks.map(
+                (bookmark) => bookmark.id
+            );
+            //delete bookmarks by loop
+            bookmarkIds.forEach(async (bookmarkId) => {
+                await dbConfig.Bookmark.deleteByID(bookmarkId);
+            });
+        }
+    };
+
+    const UpdateOrInsertBookmarkListInDatabaseAsync = async (
+        model: BookmarkListType
+    ) => {
+        const bookmarkListInDatabase = await dbConfig.BookmarkList.getByID(
+            model.id!
+        );
+        if (bookmarkListInDatabase) {
+            await dbConfig.BookmarkList.deleteByID(model.id!);
+        }
+
+        const bookmarkIds = model.bookmarks.map((bookmark) => bookmark.id);
+        //delete bookmarks by loop
+        bookmarkIds.forEach(async (bookmarkId) => {
+            await dbConfig.Bookmark.deleteByID(bookmarkId);
+        });
+
+        await dbConfig.BookmarkList.add(model);
+        model.bookmarks.forEach(async (bookmark) => {
+            await dbConfig.Bookmark.add(bookmark);
+        });
+    };
+
+    const createOrUpdateBookmarkList = async (model: BookmarkListType) => {
         //validate bookmark list title
         if (!model.title || model.title.trim() === "") {
             toast.error("Bookmark List Title Is Missing!", {
@@ -457,41 +588,38 @@ function App() {
             return false;
         }
 
-        if (model.id) {
-            setBookmarksList((prev) => {
-                return prev.map((bookmark) => {
-                    if (bookmark.id === model.id) {
-                        return model;
-                    }
-                    return bookmark;
-                });
+        let IsNew = true;
+
+        if (!model.id) model.id = generateUUID();
+        else IsNew = false;
+
+        model.bookmarks.forEach((bookmark) => {
+            bookmark.bookmarkListId = model.id;
+        });
+
+        //remove bookmark list from state and add it again
+        setBookmarksList((prev) => {
+            return prev.filter((bookmarkList) => {
+                return bookmarkList.id !== model.id;
             });
-        } else {
-            const newId = generateUUID();
-            setBookmarksList((prev) => [
-                ...prev,
-                {
-                    id: newId,
-                    title: model.title,
-                    bookmarks: model.bookmarks,
-                },
-            ]);
-        }
+        });
+
+        setBookmarksList((prev) => {
+            return [...prev, model];
+        });
+
+        await UpdateOrInsertBookmarkListInDatabaseAsync(model);
+
         return true;
     };
 
-    const removeBookmarkList = (id: string) => {
-        setBookmarksList((prev) =>
-            prev.filter((bookmark) => bookmark.id !== id)
-        );
-    };
+    const removeBookmarkList = async (id: string) => {
+        setBookmarksList((prev) => {
+            return prev.filter((bookmark) => bookmark.id !== id);
+        });
 
-    const renderedBookmarkLists = bookmarkLists.filter((bookmarkList) => {
-        return bookmarkList.title
-            .toLowerCase()
-            .trim()
-            .includes(searchText.toLowerCase().trim());
-    });
+        await DeleteBookmarkListInDatabaseAsync(id);
+    };
 
     return (
         <>
@@ -611,8 +739,8 @@ function App() {
                                                     <button
                                                         type="button"
                                                         className="btn btn-danger w-100"
-                                                        onClick={() =>
-                                                            removeBookmarkList(
+                                                        onClick={async () =>
+                                                            await removeBookmarkList(
                                                                 bookmarkList.id!
                                                             )
                                                         }
