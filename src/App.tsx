@@ -647,7 +647,7 @@ function App() {
                             type="search"
                             className="form-control"
                             onChange={(e) => setSearchText(e.target.value)}
-                            placeholder="Search Bookmark List"
+                            placeholder="Search bookmark list or title"
                         />
                     </div>
                 </div>
