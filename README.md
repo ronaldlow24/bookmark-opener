@@ -1,0 +1,3 @@
+This is a web-based application for storing bookmarks, built with React, Vite, Typescript, and IndexedDB. The application allows users to add, edit, and delete bookmarks, as well as categorize them for easy access. It also includes a search function for finding specific bookmarks by name or URL.
+
+The application is built using modern web technologies, including React for building the user interface, Vite for fast and efficient development, Typescript for type safety and improved code quality, and IndexedDB for client-side storage. The file structure is organized to maintain a clean and scalable codebase, with separate directories for components, hooks, models, and utilities.
